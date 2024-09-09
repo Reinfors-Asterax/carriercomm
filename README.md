@@ -14,8 +14,10 @@ The **CarrierComm** plugin tracks your Fleet Carrier’s movements, fuel levels,
    
 2. **Place in EDMC Plugins Folder**:
    - Move or copy the plugin folder into your EDMC `plugins` directory, typically found at:
-     - Windows: `C:\Users\<YourName>\AppData\Local\EDMarketConnector\plugins`
-     - MacOS: `~/Library/Application Support/EDMarketConnector/plugins`
+    - Windows: `%LOCALAPPDATA%\EDMarketConnector\plugins`
+    - Mac: `~/Library/Application Support/EDMarketConnector/plugins`
+    - Linux: `$XDG_DATA_HOME/EDMarketConnector/plugins`, or
+        `~/.local/share/EDMarketConnector/plugins` if `$XDG_DATA_HOME` is unset.
    
 3. **Restart EDMC**: After placing the plugin in the directory, restart EDMC. The plugin should now be loaded and visible under the EDMC settings.
 
