@@ -17,11 +17,10 @@ from config import config, appname
 from theme import theme
 import myNotebook as nb
 
-
 # Initialize module variables
 this = sys.modules[__name__]
 this.plugin_name = "CarrierComm"
-this.version_info = (0, 2, 7)
+this.version_info = (0, 1, 7)
 this.version = ".".join(map(str, this.version_info))
 this.logger = logging.getLogger(f'{appname}.{this.plugin_name}')
 if not this.logger.hasHandlers():
@@ -47,6 +46,8 @@ this.departureMessage = tk.BooleanVar(value=True)
 this.cancelledMessage = tk.BooleanVar(value=True)
 
 DEFAULT_IMAGE_URL = "https://static.wikia.nocookie.net/elite-dangerous/images/c/cd/ED-Drake-Class-Carrier.png/revision/latest/scale-to-width-down/1000?cb=20200326223341"
+discord_webhook_pattern = r"^https://discord\.com/api/webhooks/\d+/\S+$"
+
 style = ttk.Style()
 style.configure("My.TCheckbutton", background='white', borderwidth=0)
 
@@ -73,34 +74,6 @@ class WebhookWorker(threading.Thread):
             except queue.Empty:
                 continue
         this.logger.info("WebhookWorker stopped")  # Debugging line
-
-
-def check_for_updates():
-    OWNER='Rihanss'
-    REPO='carriercomm'
-    NEW_RELEASE_AVAILABLE= 'New update is available'
-    BACKGROUND = tk.Label().cget("background")
-
-    headers = {
-        'Authorization': f'token {GITHUB_TOKEN}',
-        'Accept': 'application/vnd.github.v3+json'
-    }
-
-    try:
-        response = requests.get("https://api.github.com/repos/{owner}/{repo}/releases/latest", headers=headers)
-        response.raise_for_status()  # Raise an error for bad responses
-
-        latest_release = response.json()
-        latest_version = latest_release['tag_name']  # e.g., 'v0.2.8'
-
-        if latest_version != current_version:
-            print(f"A new version {latest_version} is available!")
-            notify_user(latest_version)
-        else:
-            print("You are using the latest version.")
-
-    except requests.RequestException as e:
-        print(f"Error checking for updates: {e}")
 
 def check_webhook_url():
     webhook_url = this.webhookURL.get()
@@ -237,52 +210,88 @@ def prefs_changed(cmdr: str, is_beta: bool):
 UPDATE_WEBHOOK_STATUS_EVENT = "<<UpdateWebhookStatus>>"
 
 def plugin_app(parent: tk.Frame) -> Union[tk.Widget, Tuple[tk.Widget, tk.Widget]]:
+    # Create the main application frame
     app_frame = tk.Frame(parent)
     app_frame.pack(fill=tk.BOTH, expand=True)
 
+    # Status label for displaying the plugin's activity status
     status_label = tk.Label(app_frame, text="", fg="red", pady=0, bd=0)
     status_label.pack(pady=2)
 
+    # Dynamic label for webhook status
     dynamic_status_label = tk.Label(app_frame, text="Checking webhook status...", font=("Helvetica", 15), pady=0, bd=0, height=1)
     dynamic_status_label.pack(pady=4)
 
+    # Labels for displaying carrier information
+    carrier_label = tk.Label(app_frame, text="", font=("Helvetica", 12))
+    carrier_label.pack(pady=4)
+
+    location_label = tk.Label(app_frame, text="Current Location: N/A", font=("Helvetica", 12))
+    location_label.pack(pady=4)
+
+    # Function to update the displayed carrier information
+    def update_carrier_info():
+        # Retrieve carrier details from the carrier_state dictionary
+        carrier_name = carrier_state.get('name', 'Unknown Carrier')
+        carrier_callsign = carrier_state.get('callsign', 'N/A')
+        current_system = carrier_state.get('current_system', 'Unknown System')
+        current_planet = carrier_state.get('current_planet', 'Unknown Planet')
+
+        # Update the labels with the latest carrier information
+        carrier_label.config(text=f"{carrier_name} ({carrier_callsign})")
+        location_label.config(text=f"Current Location: {current_system} ({current_planet})")
+
+    # Function to update the status label for the webhook
     def update_webhook_status(status_message: str, color: str):
         status_label.config(text=status_message, fg=color)
 
+    # Function to check the webhook URL's validity and status
     def check_webhook():
+        webhook_url = this.webhookURL.get()
+
+        # Validate the webhook URL
+        if not webhook_url or webhook_url.strip() == "":
+            return f"{this.plugin_name} is inactive", "Webhook URL is invalid or empty", "red"
+
+        # Validate that the webhook URL is a Discord webhook
+        discord_webhook_pattern = r"^https://discord\.com/api/webhooks/\d+/\S+$"
+        if not re.match(discord_webhook_pattern, webhook_url):
+            return f"{this.plugin_name} is inactive", "Webhook URL is invalid or not a Discord webhook.", "red"
+
+        # Check the webhook URL's status
         try:
-            webhook_url = this.webhookURL.get()
             response = requests.head(webhook_url, timeout=5)
             if response.status_code == 200:
-                status = f"{this.plugin_name} is active"
-                color = "green"
-                dynamic_status = "Webhook URL is valid and active"
+                return f"{this.plugin_name} is active", "Webhook URL is valid and active", "green"
             else:
-                status = f"{this.plugin_name} is inactive"
-                dynamic_status = "Webhook URL is invalid or empty"
-                color = "red"
+                return f"{this.plugin_name} is inactive", "Webhook URL is invalid or empty", "red"
         except requests.RequestException:
-            status = f"{this.plugin_name} is inactive"
-            dynamic_status = "Webhook URL is invalid or empty"
-            color = "red"
-        return status, dynamic_status, color
+            return f"{this.plugin_name} is inactive", "Webhook URL is invalid or empty", "red"
 
+    # Function for periodic checks of the webhook status and carrier information
     def periodic_check():
         status, dynamic_status, color = check_webhook()
         update_webhook_status(dynamic_status, color)
         dynamic_status_label.config(text=status, fg=color)
-        app_frame.after(10000, periodic_check)  # Schedule the next check in 10 seconds
 
-    # Perform an instant check immediately
+        # Update the carrier information periodically
+        update_carrier_info()
+
+        # Schedule the next check in 10 seconds
+        app_frame.after(10000, periodic_check)
+
+    # Perform an initial check of the webhook status
     status, dynamic_status, color = check_webhook()
     update_webhook_status(dynamic_status, color)
     dynamic_status_label.config(text=status, fg=color)
 
-    # Start periodic checking
-    app_frame.after(10000, periodic_check)  # Next check in 10 seconds
+    # Start periodic checking for updates
+    app_frame.after(10000, periodic_check)
+
+    # Initial update for carrier info
+    update_carrier_info()
 
     return app_frame
-
 
 def plugin_start3(plugin_dir):
     """Initialize the plugin and load settings."""
@@ -427,7 +436,6 @@ def journal_entry(cmdrname: str, is_beta: bool, system: str, station: str, entry
                 carrier_state['current_system'] = entry.get('StarSystem', 'Unknown')
                 save_state(carrier_state)
 
-
         elif event_type == 'CarrierJumpRequest':
             if this.departureMessage.get():
                 # System name and optionally a celestial body
@@ -523,7 +531,7 @@ def journal_entry(cmdrname: str, is_beta: bool, system: str, station: str, entry
                 current_system = carrier_state.get('current_system')
                 current_planet = carrier_state.get('current_planet')
 
-                carrier_state.pop('jump_time', None)  # Clear jump time on cancellation
+                carrier_state.pop('jump_time', None)
 
                 carrier_name = carrier_state.get('name', 'Unknown')
                 carrier_callsign = carrier_state.get('callsign', 'Unknown')
@@ -548,6 +556,8 @@ def journal_entry(cmdrname: str, is_beta: bool, system: str, station: str, entry
                     color=0xffa500,
                     fields=fields
                 )
+                carrier_state.pop('target_system', None)
+                carrier_state.pop('target_planet', None)
 
     except Exception as e:
         this.logger.error(f"Error {str(e)}")
