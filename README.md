@@ -35,11 +35,11 @@ The **CarrierComm** plugin tracks your Fleet Carrier’s movements, fuel levels,
 ### How to Store Carrier Location
 To make the plugin save or store your carrier location:
 
-1. **Dock at Your Carrier:** Open the carrier management tab in Elite Dangerous and dock at your carrier. This will automatically save the carrier’s current location in the plugin.
+1. **Carrier Manage and dock:** Open the carrier management tab in Elite Dangerous and dock at your carrier. This will automatically save the carrier’s current location in the plugin.
 
 2. **EDSM Detection:** If your carrier's location is detected via EDSM, the plugin will store the location automatically based on EDSM data.
 
-3. **Outdated Location:** If the carrier's location in the plugin becomes outdated, simply dock at your carrier again to update and save its current location.
+3. **Outdated Location:** If the carrier's location in the plugin becomes outdated (EDSM), simply dock at your carrier again to update and save its current location.
 
 Notifications
 Once configured, the plugin will monitor and notify the following events through Discord:
