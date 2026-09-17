@@ -307,11 +307,11 @@ def update_ui_labels() -> None:
         if this.status_label:
             webhook_url = (this.webhookURL.get() if this.webhookURL else "").strip()
             if not webhook_url:
-                this.status_label.config(text="Status: Webhook Not Set", fg="gray")
+                this.status_label.config(text="Status: Webhook Not Set", foreground="gray")
             elif is_valid_discord_webhook(webhook_url):
-                this.status_label.config(text="Status: Active", fg="green")
+                this.status_label.config(text="Status: Active", foreground="green")
             else:
-                this.status_label.config(text="Status: Invalid Webhook URL", fg="red")
+                this.status_label.config(text="Status: Invalid Webhook URL", foreground="red")
 
     try:
         this.app_frame.after(0, _update)
@@ -364,10 +364,10 @@ def plugin_app(parent: tk.Frame) -> Union[tk.Widget, Tuple[tk.Widget, tk.Widget]
     this.location_label = tk.Label(this.app_frame, text="Location: Unknown System", anchor=tk.W, justify=tk.LEFT)
     this.location_label.grid(row=1, column=0, sticky=tk.W, padx=2, pady=1)
 
-    this.status_label = tk.Label(this.app_frame, text="Status: Checking...", anchor=tk.W, justify=tk.LEFT, fg="gray")
+    this.status_label = tk.Label(this.app_frame, text="Status: Checking...", anchor=tk.W, justify=tk.LEFT, foreground="gray")
     this.status_label.grid(row=2, column=0, sticky=tk.W, padx=2, pady=1)
 
-    theme.apply(this.app_frame)
+    theme.update(this.app_frame)
     update_ui_labels()
     return this.app_frame
 
@@ -403,8 +403,7 @@ def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.F
 
     nb.Label(
         frame,
-        text="Note: Arrival notifications only fire if you are docked or present in system upon arrival.",
-        fg="gray"
+        text="Note: Arrival notifications only fire if you are docked or present in system upon arrival."
     ).grid(row=cur_row, column=0, columnspan=3, padx=PADX, pady=0, sticky=tk.W)
     cur_row += 1
 
@@ -439,18 +438,18 @@ def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.F
     btn_default_image.grid(row=cur_row, column=2, padx=PADX, pady=PADY, sticky=tk.W)
     cur_row += 1
 
-    test_status_label = nb.Label(frame, text="", fg="gray")
+    test_status_label = nb.Label(frame, text="")
 
     def run_webhook_test():
         url = this.webhookURL.get().strip()
         if not url:
-            test_status_label.config(text="Error: Discord Webhook URL is empty.", fg="red")
+            test_status_label.config(text="Error: Discord Webhook URL is empty.", foreground="red")
             return
         if not is_valid_discord_webhook(url):
-            test_status_label.config(text="Error: Invalid Discord Webhook URL format.", fg="red")
+            test_status_label.config(text="Error: Invalid Discord Webhook URL format.", foreground="red")
             return
 
-        test_status_label.config(text="Sending test notification...", fg="blue")
+        test_status_label.config(text="Sending test notification...", foreground="blue")
 
         def _test_task():
             carrier_name = carrier_state.get('name', 'CarrierComm Test')
@@ -470,9 +469,9 @@ def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.F
 
             def _on_result():
                 if success:
-                    test_status_label.config(text="Success! Test message delivered to Discord.", fg="green")
+                    test_status_label.config(text="Success! Test message delivered to Discord.", foreground="green")
                 else:
-                    test_status_label.config(text="Failed to deliver test message. Check logs.", fg="red")
+                    test_status_label.config(text="Failed to deliver test message. Check logs.", foreground="red")
 
             try:
                 frame.after(0, _on_result)
@@ -486,7 +485,6 @@ def plugin_prefs(parent: nb.Notebook, cmdr: str, is_beta: bool) -> Optional[tk.F
     test_status_label.grid(row=cur_row, column=1, columnspan=2, padx=PADX, pady=6, sticky=tk.W)
     cur_row += 1
 
-    theme.apply(frame)
     return frame
 
 
